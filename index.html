@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>En busca del Novio perdido</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Modal de Inicio -->
+    <div id="overlay">
+        <div id="modal">
+            <h1>🚗 En busca del Novio perdido</h1>
+            <div class="modal-body">
+                <p>Bienvenido a esta gran misión.</p>
+                <p>Deberás conducir desde <b>Valencia</b>, bajo las peores condiciones y esquivando múltiples obstáculos, </p>
+                <p>hasta llegar a <b>Isla de Altea</b>.</p>
+                <p>Allí, al final del puente, estará tu novio al que habrás de recordar que <b>Vuestra Historia</b> solo acaba de empezar.</p>
+                <hr>
+                <p class="controls">🕹️ <b>Controles:</b><br>
+                ⬅️ / ➡️ : Frenar / Acelerar<br>
+                ⬆️ / <kbd class="spacebar">Espacio</kbd> : Saltar<br>
+                🅿️ : Pausa</p>
+            </div>
+            <button id="startBtn">Empezar Viaje ❤️</button>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="status">VALENCIA 🥘</div>
+        <button id="pauseBtn">Pausar</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <div id="final-ui">
+        <button id="restartBtn" onclick="location.reload()" style="display:none;">Reintentar viaje 🔄</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
