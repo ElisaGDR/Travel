@@ -67,6 +67,33 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => keys[e.code] = false);
 
+// --- CONTROLES TÁCTILES PARA MÓVIL ---
+window.addEventListener("touchstart", (e) => {
+    // Si el juego ha empezado y no ha terminado, saltamos
+    if (gameStarted && !isPaused && !hasReachedEnd) {
+        keys["ArrowUp"] = true; // Simulamos que pulsa flecha arriba
+        
+        // Opcional: Si toca el lado derecho acelera, si toca el izquierdo frena
+        const touchX = e.touches[0].clientX;
+        if (touchX > window.innerWidth / 2) {
+            keys["ArrowRight"] = true;
+        } else {
+            keys["ArrowLeft"] = true;
+        }
+    }
+});
+
+window.addEventListener("touchend", () => {
+    // Al soltar el dedo, dejamos de simular las teclas
+    keys["ArrowUp"] = false;
+    keys["ArrowRight"] = false;
+    keys["ArrowLeft"] = false;
+});
+
+// Evitar que el navegador haga scroll al tocar el juego
+canvas.addEventListener("touchstart", (e) => e.preventDefault(), {passive: false});
+canvas.addEventListener("touchmove", (e) => e.preventDefault(), {passive: false});
+
 startBtn.onclick = () => { overlay.style.display = "none"; gameStarted = true; update(); };
 pauseBtn.onclick = () => togglePause();
 
