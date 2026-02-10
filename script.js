@@ -8,18 +8,26 @@ const restartBtn = document.getElementById("restartBtn");
 
 canvas.width = 800; canvas.height = 400;
 
+const imgNoviaIcon = new Image(); imgNoviaIcon.src = 'eli icon.png';
+const imgNoviaFull = new Image(); imgNoviaFull.src = 'eli full.webp';
+const imgNovio = new Image(); imgNovio.src = 'luis.webp';
+
 // CONFIGURACIÓN
-const MODO_PRUEBA = true; // CAMBIA A FALSE PARA JUGAR EN SERIO
-const worldWidth = 13500; // Aumentado para que el novio no esté al borde
+const MODO_PRUEBA = false; // CAMBIA A FALSE PARA JUGAR EN SERIO
+const worldWidth = 13500; 
 let gameStarted = false, gameActive = true, isPaused = false;
 let cameraX = 0, lives = 3, invincibilityFrames = 0;
 let hasReachedEnd = false;
 
 const car = {
     x: 150, y: 300, w: 75, h: 35,
-    baseSpeed: 5, currentSpeed: 5,
-    vy: 0, gravity: 0.8, jumpPower: -17,
-    grounded: true, color: "#800000"
+    baseSpeed: 5,
+    currentSpeed: 5,
+    vy: 0, 
+    gravity: 0.9,
+    jumpPower: -17,
+    grounded: true, 
+    color: "#800000"
 };
 
 const bride = {
@@ -38,27 +46,16 @@ const obstacleTypes = [
 ];
 
 const obstacles = [];
-// Generamos exactamente 40 obstáculos repartidos por el camino
 for (let i = 0; i < 40; i++) {
     const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
     let yPos = (type.tipo === "suelo") ? 338 : 310; 
-
-    // Reparto equilibrado:
-    // Empiezan en el píxel 1200.
-    // Con una separación de 245px, el obstáculo nº 40 estará sobre el píxel 10755.
-    // Así, cuando empieces a ver "ALTEA" (píxel 11200) y la zona de césped, el camino estará limpio.
-    obstacles.push({ 
-        x: 1200 + (i * 245) + Math.random() * 100, 
-        y: yPos, 
-        ...type, 
-        hit: false 
-    });
+    obstacles.push({ x: 1200 + (i * 245) + Math.random() * 100, y: yPos, ...type, hit: false });
 }
 
 const tunnelStart = 8200;
 const tunnelEnd = 9800;
 const finishArea = 11200; 
-const groomX = 11800; // Novio colocado en una posición cómoda
+const groomX = 11800; 
 
 const keys = {};
 window.addEventListener("keydown", (e) => {
@@ -67,32 +64,17 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => keys[e.code] = false);
 
-// --- CONTROLES TÁCTILES PARA MÓVIL ---
 window.addEventListener("touchstart", (e) => {
-    // Si el juego ha empezado y no ha terminado, saltamos
     if (gameStarted && !isPaused && !hasReachedEnd) {
-        keys["ArrowUp"] = true; // Simulamos que pulsa flecha arriba
-        
-        // Opcional: Si toca el lado derecho acelera, si toca el izquierdo frena
+        keys["ArrowUp"] = true;
         const touchX = e.touches[0].clientX;
-        if (touchX > window.innerWidth / 2) {
-            keys["ArrowRight"] = true;
-        } else {
-            keys["ArrowLeft"] = true;
-        }
+        if (touchX > window.innerWidth / 2) keys["ArrowRight"] = true;
+        else keys["ArrowLeft"] = true;
     }
 });
-
 window.addEventListener("touchend", () => {
-    // Al soltar el dedo, dejamos de simular las teclas
-    keys["ArrowUp"] = false;
-    keys["ArrowRight"] = false;
-    keys["ArrowLeft"] = false;
+    keys["ArrowUp"] = false; keys["ArrowRight"] = false; keys["ArrowLeft"] = false;
 });
-
-// Evitar que el navegador haga scroll al tocar el juego
-canvas.addEventListener("touchstart", (e) => e.preventDefault(), {passive: false});
-canvas.addEventListener("touchmove", (e) => e.preventDefault(), {passive: false});
 
 startBtn.onclick = () => { overlay.style.display = "none"; gameStarted = true; update(); };
 pauseBtn.onclick = () => togglePause();
@@ -113,7 +95,6 @@ function update() {
         else car.currentSpeed = car.baseSpeed;
         car.x += car.currentSpeed;
     } else if (bride.moving) {
-        // La novia camina hacia el novio
         bride.x += (bride.targetX - bride.x) * 0.03;
         bride.y += (bride.targetY - bride.y) * 0.03;
         if (Math.abs(bride.x - bride.targetX) < 2) {
@@ -129,11 +110,9 @@ function update() {
     car.vy += car.gravity; car.y += car.vy;
     if (car.y >= 300) { car.y = 300; car.vy = 0; car.grounded = true; }
 
-    // LÓGICA DE CÁMARA MEJORADA
     if (!hasReachedEnd) {
         cameraX = car.x - 150;
     } else {
-        // Cuando llegamos al final, la cámara se queda quieta en un punto que centra a ambos
         cameraX = 11150; 
     }
 
@@ -145,14 +124,15 @@ function update() {
     if (gameActive && !hasReachedEnd) {
         obstacles.forEach(obs => {
             if (!obs.hit && invincibilityFrames === 0) {
-                let hitboxY = (obs.tipo === "suelo") ? obs.y - 35 : obs.y;
+                // LOGICA DE BACHES CORREGIDA: Detecta colisión si el coche los pisa
+                let hitboxY = (obs.tipo === "suelo") ? obs.y - 45 : obs.y;
                 let hitboxMargin = (obs.tipo === "suelo") ? 0 : 15;
                 
                 if (car.x < obs.x + obs.w - hitboxMargin && car.x + car.w > obs.x + hitboxMargin && 
                     car.y + car.h > hitboxY && car.y < obs.y + obs.h) {
                     if (!MODO_PRUEBA) lives--;
                     obs.hit = true; invincibilityFrames = 60;
-                    if (lives <= 0) endGame("💔 El viaje fue duro... ¡Reinténtalo de nuevo!");
+                    if (lives <= 0) endGame("💔 El viaje es duro... ¡Inténtalo de nuevo!");
                 }
             }
         });
@@ -163,13 +143,12 @@ function update() {
         statusText.innerHTML = `Vidas: ${MODO_PRUEBA ? "♾️" : "❤️".repeat(lives)} | ${prog}% del viaje`;
     }
     
-    // EL COCHE FRENA ANTES PARA VER LA ESCENA
     if (car.x >= 11350 && !hasReachedEnd) {
         hasReachedEnd = true;
         car.x = 11350; 
         bride.x = car.x + 30;
         bride.y = car.y;
-        bride.targetX = groomX - 80;
+        bride.targetX = groomX - 25; // Eli pegadita a Luis
         bride.targetY = 320;
         bride.moving = true;
     }
@@ -244,20 +223,21 @@ function draw() {
     ctx.fillText("ALTEA", 11250, 200);
     
     // Novio
-    ctx.font = "85px Arial"; 
-    ctx.fillText("🧔‍🦳", groomX, 320);
+    ctx.drawImage(imgNovio, groomX, 155, 180, 180);
     
     if (hasReachedEnd) {
-        ctx.font = "85px Arial";
-        ctx.fillText("👩🏻", bride.x, bride.y);
+        // Novia
+        ctx.drawImage(imgNoviaFull, bride.x, bride.y - 140, 155, 155);
         
         if (!bride.moving) {
-            let coupleMidX = (bride.x + groomX + 85) / 2;
-            let heartY = 180 + Math.sin(Date.now() / 300) * 10;
-            ctx.font = "50px Arial";
-            ctx.fillText("💘", coupleMidX - 25, heartY);
-            ctx.fillStyle = "black"; ctx.font = "bold 22px Arial";
-            ctx.textAlign = "center";
+            // CENTRADO DEL CORAZÓN MEJORADO
+            let coupleMidX = (bride.x + groomX + 160) / 2;
+            let heartY = 120 + Math.sin(Date.now() / 300) * 10;
+            ctx.textAlign = "center"
+            ctx.save();
+            ctx.font = "60px Arial";
+            ctx.fillText("💘", coupleMidX, heartY);
+            ctx.restore();
         }
     }
 
@@ -278,7 +258,7 @@ function draw() {
             ctx.fillRect(car.x + 15, car.y - 15, 40, 20); 
             ctx.fillStyle = "#b3e5fc"; ctx.fillRect(car.x + 35, car.y - 12, 16, 14); 
             if (!hasReachedEnd) {
-                ctx.font = "15px Arial"; ctx.fillText("👩🏻", car.x + 35, car.y - 0);
+                ctx.drawImage(imgNoviaIcon, car.x + 18, car.y - 15, 45, 45);
             }
             ctx.fillStyle = "#111"; ctx.beginPath();
             ctx.arc(car.x + 15, car.y + car.h, 11, 0, Math.PI*2); ctx.arc(car.x + 60, car.y + car.h, 11, 0, Math.PI*2); ctx.fill();
