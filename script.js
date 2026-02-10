@@ -10,9 +10,10 @@ canvas.width = 800; canvas.height = 400;
 
 // CONFIGURACIÓN
 const MODO_PRUEBA = true; // CAMBIA A FALSE PARA JUGAR EN SERIO
-const worldWidth = 12000; 
+const worldWidth = 13500; // Aumentado para que el novio no esté al borde
 let gameStarted = false, gameActive = true, isPaused = false;
 let cameraX = 0, lives = 3, invincibilityFrames = 0;
+let hasReachedEnd = false;
 
 const car = {
     x: 150, y: 300, w: 75, h: 35,
@@ -21,7 +22,11 @@ const car = {
     grounded: true, color: "#800000"
 };
 
-const clouds = Array.from({length: 25}, () => ({
+const bride = {
+    x: 0, y: 0, targetX: 0, targetY: 320, moving: false
+};
+
+const clouds = Array.from({length: 40}, () => ({
     x: Math.random() * worldWidth, y: Math.random() * 120, s: 0.6 + Math.random()
 }));
 
@@ -33,15 +38,27 @@ const obstacleTypes = [
 ];
 
 const obstacles = [];
-for (let i = 0; i < 55; i++) {
+// Generamos exactamente 40 obstáculos repartidos por el camino
+for (let i = 0; i < 40; i++) {
     const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-    let yPos = (type.tipo === "suelo") ? 338 : 310; // Posición exacta en carretera
-    obstacles.push({ x: 1200 + (i * 190) + Math.random() * 100, y: yPos, ...type, hit: false });
+    let yPos = (type.tipo === "suelo") ? 338 : 310; 
+
+    // Reparto equilibrado:
+    // Empiezan en el píxel 1200.
+    // Con una separación de 245px, el obstáculo nº 40 estará sobre el píxel 10755.
+    // Así, cuando empieces a ver "ALTEA" (píxel 11200) y la zona de césped, el camino estará limpio.
+    obstacles.push({ 
+        x: 1200 + (i * 245) + Math.random() * 100, 
+        y: yPos, 
+        ...type, 
+        hit: false 
+    });
 }
 
 const tunnelStart = 8200;
 const tunnelEnd = 9800;
-const finishArea = 11200;
+const finishArea = 11200; 
+const groomX = 11800; // Novio colocado en una posición cómoda
 
 const keys = {};
 window.addEventListener("keydown", (e) => {
@@ -61,39 +78,74 @@ function togglePause() {
 }
 
 function update() {
-    if (!gameActive || !gameStarted || isPaused) return;
+    if (!gameStarted || isPaused) return;
 
-    if (keys["ArrowRight"]) car.currentSpeed = car.baseSpeed + 5;
-    else if (keys["ArrowLeft"]) car.currentSpeed = car.baseSpeed - 3;
-    else car.currentSpeed = car.baseSpeed;
-    
-    car.x += car.currentSpeed;
-    if ((keys["ArrowUp"] || keys["Space"]) && car.grounded) { car.vy = car.jumpPower; car.grounded = false; }
+    if (!hasReachedEnd && gameActive) {
+        if (keys["ArrowRight"]) car.currentSpeed = car.baseSpeed + 5;
+        else if (keys["ArrowLeft"]) car.currentSpeed = car.baseSpeed - 3;
+        else car.currentSpeed = car.baseSpeed;
+        car.x += car.currentSpeed;
+    } else if (bride.moving) {
+        // La novia camina hacia el novio
+        bride.x += (bride.targetX - bride.x) * 0.03;
+        bride.y += (bride.targetY - bride.y) * 0.03;
+        if (Math.abs(bride.x - bride.targetX) < 2) {
+            bride.moving = false;
+            endGame("❤️ ¡LLEGASTE A ALTEA! Vuestra historia solo acaba de empezar.");
+        }
+    }
+
+    if ((keys["ArrowUp"] || keys["Space"]) && car.grounded && !hasReachedEnd && gameActive) { 
+        car.vy = car.jumpPower; 
+        car.grounded = false; 
+    }
     car.vy += car.gravity; car.y += car.vy;
     if (car.y >= 300) { car.y = 300; car.vy = 0; car.grounded = true; }
 
-    cameraX = car.x - 150;
+    // LÓGICA DE CÁMARA MEJORADA
+    if (!hasReachedEnd) {
+        cameraX = car.x - 150;
+    } else {
+        // Cuando llegamos al final, la cámara se queda quieta en un punto que centra a ambos
+        cameraX = 11150; 
+    }
+
     if (cameraX < 0) cameraX = 0;
     if (cameraX > worldWidth - canvas.width) cameraX = worldWidth - canvas.width;
 
     if (invincibilityFrames > 0) invincibilityFrames--;
-    obstacles.forEach(obs => {
-        if (!obs.hit && invincibilityFrames === 0) {
-            // Hitbox mejorada para baches (más profunda)
-            let hitboxY = (obs.tipo === "suelo") ? obs.y - 10 : obs.y;
-            if (car.x < obs.x + obs.w - 15 && car.x + car.w > obs.x + 15 && 
-                car.y + car.h > hitboxY && car.y < obs.y + obs.h) {
-                if (!MODO_PRUEBA) lives--;
-                obs.hit = true; invincibilityFrames = 60;
-                if (lives <= 0) endGame("💔 ¡Vuelve a intentarlo! Altea te espera.");
-            }
-        }
-    });
-
-    let prog = Math.min(Math.floor((car.x / (worldWidth - 500)) * 100), 100);
-    statusText.innerHTML = `Vidas: ${MODO_PRUEBA ? "♾️" : "❤️".repeat(lives)} | ${prog}% del viaje`;
     
-    if (car.x >= worldWidth - 450) endGame("❤️ ¡LLEGASTE A ALTEA! Vuestra historia solo acaba de empezar.");
+    if (gameActive && !hasReachedEnd) {
+        obstacles.forEach(obs => {
+            if (!obs.hit && invincibilityFrames === 0) {
+                let hitboxY = (obs.tipo === "suelo") ? obs.y - 35 : obs.y;
+                let hitboxMargin = (obs.tipo === "suelo") ? 0 : 15;
+                
+                if (car.x < obs.x + obs.w - hitboxMargin && car.x + car.w > obs.x + hitboxMargin && 
+                    car.y + car.h > hitboxY && car.y < obs.y + obs.h) {
+                    if (!MODO_PRUEBA) lives--;
+                    obs.hit = true; invincibilityFrames = 60;
+                    if (lives <= 0) endGame("💔 El viaje fue duro... ¡Reinténtalo de nuevo!");
+                }
+            }
+        });
+    }
+
+    let prog = Math.min(Math.floor((car.x / (worldWidth - 1500)) * 100), 100);
+    if (gameActive) {
+        statusText.innerHTML = `Vidas: ${MODO_PRUEBA ? "♾️" : "❤️".repeat(lives)} | ${prog}% del viaje`;
+    }
+    
+    // EL COCHE FRENA ANTES PARA VER LA ESCENA
+    if (car.x >= 11350 && !hasReachedEnd) {
+        hasReachedEnd = true;
+        car.x = 11350; 
+        bride.x = car.x + 30;
+        bride.y = car.y;
+        bride.targetX = groomX - 80;
+        bride.targetY = 320;
+        bride.moving = true;
+    }
 
     draw();
     requestAnimationFrame(update);
@@ -101,20 +153,18 @@ function update() {
 
 function draw() {
     let prog = car.x / worldWidth;
-    
-    // FONDO: De Gris Valencia (70, 80, 90) a Azul Altea (135, 206, 235)
     let r = 70 + (135 - 70) * prog;
-    let g = 80 + (206 - 80) * prog;
-    let b = 90 + (235 - 90) * prog;
+    let g = 80 + (215 - 80) * prog;
+    let b = 95 + (250 - 95) * prog;
     ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
     ctx.translate(-cameraX, 0);
 
-    // Nubes que aclaran
+    // Nubes
     let cloudBright = 100 + (155 * prog);
-    ctx.fillStyle = `rgba(${cloudBright},${cloudBright},${cloudBright},0.8)`;
+    ctx.fillStyle = `rgba(${cloudBright},${cloudBright},${cloudBright},0.9)`;
     clouds.forEach(c => {
         ctx.beginPath();
         ctx.arc(c.x + (cameraX * 0.3), c.y, 25 * c.s, 0, Math.PI*2);
@@ -123,68 +173,68 @@ function draw() {
     });
 
     // Valencia
-    ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.font = "bold 90px Arial";
-    ctx.fillText("VALENCIA", 100, 320); ctx.font = "120px Arial"; ctx.fillText("🥘", 150, 180);
+    ctx.fillStyle = "#1a1a1a"; ctx.font = "bold 90px Arial";
+    ctx.fillText("VALENCIA", 100, 320); 
+    ctx.font = "120px Arial"; ctx.fillText("🥘", 150, 180);
 
     // Mar Altea
     if (car.x > tunnelEnd - 800) {
-        ctx.fillStyle = "#1e88e5"; ctx.fillRect(tunnelEnd, 240, worldWidth, 160);
-        // Detalles de olas
-        ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 2;
+        ctx.fillStyle = "#0077be"; ctx.fillRect(tunnelEnd, 240, worldWidth - tunnelEnd, 160);
+        ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 3;
         for(let j=0; j<5; j++) {
-            for(let i=tunnelEnd; i<worldWidth; i+=200) {
-                ctx.beginPath(); ctx.moveTo(i + (j*30), 260 + (j*20)); 
-                ctx.lineTo(i + 40 + (j*30), 260 + (j*20)); ctx.stroke();
+            for(let i=tunnelEnd; i<worldWidth; i+=250) {
+                ctx.beginPath(); ctx.moveTo(i + (j*40), 260 + (j*20)); 
+                ctx.lineTo(i + 60 + (j*40), 260 + (j*20)); ctx.stroke();
             }
         }
-        ctx.fillStyle = "#4CAF50"; ctx.fillRect(tunnelEnd, 335, worldWidth - tunnelEnd, 10); // Césped
+        ctx.fillStyle = "#2ecc71"; ctx.fillRect(tunnelEnd, 320, worldWidth - tunnelEnd, 35);
     }
 
-    // MONTAÑA MASCARAT
-    ctx.fillStyle = "#5d5d5d";
-    ctx.beginPath();
-    ctx.moveTo(tunnelStart - 400, 340);
-    ctx.lineTo(tunnelStart, 50);
-    ctx.lineTo(tunnelEnd, 50);
-    ctx.lineTo(tunnelEnd + 400, 340);
-    ctx.fill();
+    // Montaña y Túnel
+    ctx.fillStyle = "#4a4a4a"; ctx.beginPath();
+    ctx.moveTo(tunnelStart - 400, 340); ctx.lineTo(tunnelStart, 50);
+    ctx.lineTo(tunnelEnd, 50); ctx.lineTo(tunnelEnd + 400, 340); ctx.fill();
 
-    // SEÑAL REDONDEADA
-    const signX = tunnelStart - 350, signY = 130, signW = 220, signH = 90, radius = 15;
     ctx.fillStyle = "white"; ctx.strokeStyle = "red"; ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(signX + radius, signY);
-    ctx.arcTo(signX + signW, signY, signX + signW, signY + signH, radius);
-    ctx.arcTo(signX + signW, signY + signH, signX, signY + signH, radius);
-    ctx.arcTo(signX, signY + signH, signX, signY, radius);
-    ctx.arcTo(signX, signY, signX + signW, signY, radius);
-    ctx.fill(); ctx.stroke();
+    const signX = tunnelStart - 350, signY = 130, signW = 220, signH = 90;
+    ctx.beginPath(); ctx.roundRect(signX, signY, signW, signH, 15); ctx.fill(); ctx.stroke();
     ctx.fillStyle = "black"; ctx.font = "bold 18px Arial";
-    ctx.fillText("TÚNEL DE", signX + 65, 165);
-    ctx.fillText("MASCARAT", signX + 60, 195);
-    ctx.fillStyle = "#444"; ctx.fillRect(signX + 105, 220, 12, 120);
+    ctx.fillText("TÚNEL DE", signX + 65, 165); ctx.fillText("MASCARAT", signX + 60, 195);
+    ctx.fillStyle = "#333"; ctx.fillRect(signX + 105, 220, 12, 120);
 
-    // EL TÚNEL
-    ctx.fillStyle = "#111"; ctx.fillRect(tunnelStart, 90, tunnelEnd - tunnelStart, 250);
+    ctx.fillStyle = "#0a0a0a"; ctx.fillRect(tunnelStart, 90, tunnelEnd - tunnelStart, 250);
     for(let i=0; i< (tunnelEnd-tunnelStart)/200; i++) {
         ctx.fillStyle = "#ffd700"; ctx.fillRect(tunnelStart + 100 + (i*200), 100, 40, 8);
     }
 
-    // CARRETERA
+    // Carretera
     ctx.fillStyle = "#333"; ctx.fillRect(0, 340, worldWidth, 60);
     ctx.fillStyle = "white"; 
     for(let i=0; i<worldWidth; i+=100) ctx.fillRect(i, 365, 45, 4);
 
-    // ALTEA FINAL
-    if (car.x > finishArea - 400) {
-        ctx.fillStyle = "white"; ctx.font = "bold 90px Arial";
-        ctx.fillText("ALTEA", finishArea, 320);
-        ctx.font = "80px Arial"; ctx.fillText("🧔‍♂️", finishArea + 600, 320);
-        ctx.fillStyle = "black"; ctx.font = "bold 22px Arial";
-        ctx.fillText("¡Te esperaba!", finishArea + 570, 230);
+    // ESCENA FINAL: ALTEA
+    ctx.fillStyle = "white"; ctx.font = "bold 90px Arial";
+    ctx.fillText("ALTEA", 11250, 200);
+    
+    // Novio
+    ctx.font = "85px Arial"; 
+    ctx.fillText("🧔‍🦳", groomX, 320);
+    
+    if (hasReachedEnd) {
+        ctx.font = "85px Arial";
+        ctx.fillText("👩🏻", bride.x, bride.y);
+        
+        if (!bride.moving) {
+            let coupleMidX = (bride.x + groomX + 85) / 2;
+            let heartY = 180 + Math.sin(Date.now() / 300) * 10;
+            ctx.font = "50px Arial";
+            ctx.fillText("💘", coupleMidX - 25, heartY);
+            ctx.fillStyle = "black"; ctx.font = "bold 22px Arial";
+            ctx.textAlign = "center";
+        }
     }
 
-    // OBSTÁCULOS
+    // Obstáculos
     obstacles.forEach(obs => {
         if (obs.tipo === "alto") {
             ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath();
@@ -194,15 +244,25 @@ function draw() {
         ctx.fillText(obs.emoji, obs.x, obs.y + obs.h);
     });
 
-    // COCHE + CHICA CASTAÑA
-    if (invincibilityFrames % 10 < 5) {
+    // Coche
+    if (!hasReachedEnd || invincibilityFrames > 0) {
+        if (invincibilityFrames % 10 < 5) {
+            ctx.fillStyle = car.color; ctx.fillRect(car.x, car.y, car.w, car.h);
+            ctx.fillRect(car.x + 15, car.y - 15, 40, 20); 
+            ctx.fillStyle = "#b3e5fc"; ctx.fillRect(car.x + 35, car.y - 12, 16, 14); 
+            if (!hasReachedEnd) {
+                ctx.font = "15px Arial"; ctx.fillText("👩🏻", car.x + 35, car.y - 0);
+            }
+            ctx.fillStyle = "#111"; ctx.beginPath();
+            ctx.arc(car.x + 15, car.y + car.h, 11, 0, Math.PI*2); ctx.arc(car.x + 60, car.y + car.h, 11, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#ffd700"; ctx.fillRect(car.x + car.w - 5, car.y + 5, 6, 12); 
+        }
+    } else {
         ctx.fillStyle = car.color; ctx.fillRect(car.x, car.y, car.w, car.h);
         ctx.fillRect(car.x + 15, car.y - 15, 40, 20); 
         ctx.fillStyle = "#b3e5fc"; ctx.fillRect(car.x + 35, car.y - 12, 16, 14); 
-        ctx.font = "15px Arial"; ctx.fillText("👧🏽", car.x + 36, car.y - 1);
         ctx.fillStyle = "#111"; ctx.beginPath();
         ctx.arc(car.x + 15, car.y + car.h, 11, 0, Math.PI*2); ctx.arc(car.x + 60, car.y + car.h, 11, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#ffd700"; ctx.fillRect(car.x + car.w - 5, car.y + 5, 6, 12); 
     }
 
     ctx.restore();
