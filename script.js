@@ -46,12 +46,21 @@ const obstacleTypes = [
 ];
 
 const obstacles = [];
-for (let i = 0; i < 40; i++) {
+const isMobile = window.innerWidth < 768; 
+const numObstacles = isMobile ? 25 : 40;
+const spacing = isMobile ? 400 : 245; 
+
+for (let i = 0; i < numObstacles; i++) {
     const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
     let yPos = (type.tipo === "suelo") ? 338 : 310; 
-    obstacles.push({ x: 1200 + (i * 245) + Math.random() * 100, y: yPos, ...type, hit: false });
-}
 
+    obstacles.push({ 
+        x: 1200 + (i * spacing) + Math.random() * 100, 
+        y: yPos, 
+        ...type, 
+        hit: false 
+    });
+}
 const tunnelStart = 8200;
 const tunnelEnd = 9800;
 const finishArea = 11200; 
