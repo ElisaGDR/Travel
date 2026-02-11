@@ -47,8 +47,8 @@ const obstacleTypes = [
 
 const obstacles = [];
 const isMobile = window.innerWidth < 768; 
-const numObstacles = isMobile ? 25 : 40;
-const spacing = isMobile ? 400 : 245; 
+const numObstacles = isMobile ? 30 : 40;
+const spacing = isMobile ? 330 : 245; 
 
 for (let i = 0; i < numObstacles; i++) {
     const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
@@ -75,14 +75,29 @@ window.addEventListener("keyup", (e) => keys[e.code] = false);
 
 window.addEventListener("touchstart", (e) => {
     if (gameStarted && !isPaused && !hasReachedEnd) {
-        keys["ArrowUp"] = true;
         const touchX = e.touches[0].clientX;
-        if (touchX > window.innerWidth / 2) keys["ArrowRight"] = true;
-        else keys["ArrowLeft"] = true;
+        const screenWidth = window.innerWidth;
+
+        // Si toca el lado IZQUIERDO (menos del 30% de la pantalla) -> FRENA
+        if (touchX < screenWidth * 0.3) {
+            keys["ArrowLeft"] = true;
+            keys["ArrowUp"] = false;
+            keys["ArrowRight"] = false;
+        } 
+        // Si toca el resto de la pantalla -> SALTA Y ACELERA
+        else {
+            keys["ArrowUp"] = true;
+            keys["ArrowRight"] = true;
+            keys["ArrowLeft"] = false;
+        }
     }
-});
+}, {passive: false});
+
 window.addEventListener("touchend", () => {
-    keys["ArrowUp"] = false; keys["ArrowRight"] = false; keys["ArrowLeft"] = false;
+    // Al soltar el dedo, reseteamos todas las teclas
+    keys["ArrowUp"] = false;
+    keys["ArrowRight"] = false;
+    keys["ArrowLeft"] = false;
 });
 
 startBtn.onclick = () => { overlay.style.display = "none"; gameStarted = true; update(); };
