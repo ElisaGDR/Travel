@@ -13,7 +13,7 @@ const imgNoviaFull = new Image(); imgNoviaFull.src = 'eli full.webp';
 const imgNovio = new Image(); imgNovio.src = 'luis.webp';
 
 // CONFIGURACIÓN
-const MODO_PRUEBA = false; // CAMBIA A FALSE PARA JUGAR EN SERIO
+const MODO_PRUEBA = true; // CAMBIA A FALSE PARA JUGAR EN SERIO
 const worldWidth = 13500; 
 let gameStarted = false, gameActive = true, isPaused = false;
 let cameraX = 0, lives = 3, invincibilityFrames = 0;
@@ -219,6 +219,34 @@ function draw() {
         }
         ctx.fillStyle = "#2ecc71"; ctx.fillRect(tunnelEnd, 320, worldWidth - tunnelEnd, 35);
     }
+
+    if (car.x > tunnelEnd - 500) {
+    let sunX = finishArea + 300; // Posicionado entre el cartel y el novio
+    let sunY = 100; // En mitad del cielo
+    
+    // Resplandor exterior (opcional para que luzca más bonito)
+    ctx.fillStyle = "rgba(255, 255, 0, 0.2)";
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 60, 0, Math.PI * 2);
+    ctx.fill();
+
+    // El cuerpo del Sol
+    ctx.fillStyle = "#FFD700"; // Color Oro/Amarillo brillante
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rayos del sol (detallito extra)
+    ctx.strokeStyle = "#FFD700";
+    ctx.lineWidth = 4;
+    for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(sunX, sunY);
+        let angle = (Math.PI * 2 / 8) * i;
+        ctx.lineTo(sunX + Math.cos(angle) * 70, sunY + Math.sin(angle) * 70);
+        ctx.stroke();
+    }
+}
 
     // Montaña y Túnel
     ctx.fillStyle = "#4a4a4a"; ctx.beginPath();
