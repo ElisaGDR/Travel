@@ -123,7 +123,7 @@ function update() {
         bride.y += (bride.targetY - bride.y) * 0.03;
         if (Math.abs(bride.x - bride.targetX) < 2) {
             bride.moving = false;
-            endGame("❤️ ¡LLEGASTE A ALTEA! Vuestra historia solo acaba de empezar.");
+            endGame("❤️ ¡MISIÓN CUMPLIDA! ¡Novio encontrado!.");
         }
     }
 
@@ -221,7 +221,7 @@ function draw() {
     }
 
     if (car.x > tunnelEnd - 500) {
-    let sunX = finishArea + 300; // Posicionado entre el cartel y el novio
+    let sunX = finishArea + 400; // Posicionado entre el cartel y el novio
     let sunY = 100; // En mitad del cielo
     
     // Resplandor exterior (opcional para que luzca más bonito)
