@@ -13,7 +13,7 @@ const imgNoviaFull = new Image(); imgNoviaFull.src = 'eli full.webp';
 const imgNovio = new Image(); imgNovio.src = 'luis.webp';
 
 // CONFIGURACIÓN
-const MODO_PRUEBA = true; // CAMBIA A FALSE PARA JUGAR EN SERIO
+const MODO_PRUEBA = false; // CAMBIA A FALSE PARA JUGAR EN SERIO
 const worldWidth = 13500; 
 let gameStarted = false, gameActive = true, isPaused = false;
 let cameraX = 0, lives = 3, invincibilityFrames = 0;
