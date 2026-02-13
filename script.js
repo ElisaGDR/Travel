@@ -47,7 +47,7 @@ const obstacleTypes = [
 
 const obstacles = [];
 const isMobile = window.innerWidth < 768; 
-const numObstacles = isMobile ? 30 : 40;
+const numObstacles = isMobile ? 35 : 40;
 const spacing = isMobile ? 330 : 245; 
 
 for (let i = 0; i < numObstacles; i++) {
@@ -87,7 +87,7 @@ window.addEventListener("touchstart", (e) => {
         // Si toca el resto de la pantalla -> SALTA Y ACELERA
         else {
             keys["ArrowUp"] = true;
-            keys["ArrowRight"] = true;
+            keys["ArrowRight"] = false;
             keys["ArrowLeft"] = false;
         }
     }
